@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build C++ Project",
+        "type": "shell",
+        "command": "g++",
+        "args": [
+          "-I", "src/include",
+          "-L", "src/lib",
+          "-o", "my_program",
+          "*.cpp",
+          "-lmingw32",
+          "-lSDL2main",
+          "-lSDL2"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": ["$gcc"],
+        "detail": "Build C++ project with g++"
+      }
+    ]
+  }
+  
