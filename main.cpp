@@ -34,7 +34,7 @@ const int HEIGHT = 720;
 const int Ball_Width = 15;
 const int Ball_Height = 15;
 const int Paddle_Width = 10;
-const int Paddle_Height = 100;
+const int Paddle_Height = 80;
 const float Paddle_Speed = 1.0f;
 const float Ball_Speed = 1.0f;
 
@@ -209,6 +209,21 @@ public:
         rect.h = height;
     }
 
+    void SetScore(int score)
+    {
+        SDL_FreeSurface (surface);
+        SDL_DestroyTexture (texture);
+
+        surface = TTF_RenderText_Solid(font, to_string(score).c_str(), {0xFF, 0xFF, 0, 0xFF});
+        
+        texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+        int height, width;
+        SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+        rect.w = width;
+        rect.h = height;
+    }
+
     ~PlayerScores()
     {
         SDL_FreeSurface(surface);
@@ -359,11 +374,14 @@ int main(int argc, char *argv[])
     // Player score text
     PlayerScores playerone(Vec2(WIDTH / 4.0f, 20.0f), renderer, scoreFont);
 
-    PlayerScores playertwo(Vec2(WIDTH - (WIDTH / 4.0), 20.0), renderer, scoreFont);
+    PlayerScores playertwo(Vec2(WIDTH * 3 / 4, 20.0f), renderer, scoreFont);
 
     // GAME LOGIC
     bool running = true;
     bool buttons[4] = {};
+
+    int playerOneScore = 0;
+    int playerTwoScore = 0;
 
     float dt = 0.0f;
 
@@ -471,6 +489,18 @@ int main(int argc, char *argv[])
                  contact.type != CollisionType::None)
         {
             ball.CollideWithWall(contact);
+
+            if (contact.type == CollisionType::Left)
+            {
+                ++playerTwoScore;
+
+                playertwo.SetScore(playerTwoScore);
+            }
+            else if (contact.type == CollisionType::Right)
+            {
+                ++playerOneScore;
+                playerone.SetScore(playerOneScore);
+            }
         }
 
         // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
