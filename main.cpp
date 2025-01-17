@@ -107,6 +107,42 @@ public:
     SDL_Rect rect;
 };
 
+class PlayerScores
+{
+public:
+    PlayerScores(Vec2 position, SDL_Renderer *renderer, TTF_Font *font)
+        : renderer(renderer), font(font)
+    {
+        surface = TTF_RenderText_Solid(font, "0", {0xFF, 0xFF, 0});
+        texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+        int width, height;
+        SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
+
+        rect.x = static_cast<int>(position.x);
+        rect.y = static_cast<int>(position.x);
+        rect.w = width;
+        rect.h = height;
+    }
+
+    ~PlayerScores()
+    {
+        SDL_FreeSurface(surface);
+        SDL_DestroyTexture(texture);
+    }
+
+    void Draw()
+    {
+        SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    }
+
+    SDL_Renderer *renderer;
+    TTF_Font *font;
+    SDL_Rect rect{};
+    SDL_Texture *texture{};
+    SDL_Surface *surface{};
+};
+
 int main(int argc, char *argv[])
 {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -124,8 +160,15 @@ int main(int argc, char *argv[])
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+
     // Initialize the Text
     TTF_Font *scoreFont = TTF_OpenFont("Game_Number.ttf", 40);
+
+    // Player score text
+    PlayerScores playerone(Vec2(WIDTH / 4, 20), renderer, scoreFont);
+
+    PlayerScores playertwo (Vec2(WIDTH - WIDTH / 4, 20), renderer, scoreFont);
+
     // Create Ball
     Ball ball(
         Vec2(WIDTH / 2.0f - Ball_Width / 2.0f, HEIGHT / 2.0f - Ball_Height / 2.0f));
@@ -136,6 +179,7 @@ int main(int argc, char *argv[])
 
     Paddle paddle2(
         Vec2(WIDTH - (WIDTH / 60.0f), HEIGHT / 2.0f - Paddle_Height / 2.0f));
+        
     // GAME LOGIC
     bool running = true;
     while (running)
@@ -180,6 +224,10 @@ int main(int argc, char *argv[])
         // Draw Paddles
         paddle1.Draw(renderer);
         paddle2.Draw(renderer);
+
+        //Draw Scores
+        playerone.Draw();
+        playertwo.Draw();
 
         //Present the backbuffer
         SDL_RenderPresent(renderer);
