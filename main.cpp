@@ -22,7 +22,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
 OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
+#include <chrono>
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
@@ -35,7 +35,15 @@ const int Ball_Width = 10;
 const int Ball_Height = 10;
 const int Paddle_Width = 7;
 const int Paddle_Height = 70;
+const float Paddle_Speed = 1.0f;
 
+enum Buttons
+{
+    PaddleOneUP = 0,
+    PaddleOneDown,
+    PaddleTwoUp,
+    PaddleTwoDown,
+};
 class Vec2
 {
 public:
@@ -88,7 +96,7 @@ public:
 class Paddle
 {
 public:
-    Paddle(Vec2 position) : position(position)
+    Paddle(Vec2 position, Vec2 velocity) : position(position), velocity(velocity)
     {
         rect.x = static_cast<int>(position.x);
         rect.y = static_cast<int>(position.y);
@@ -103,7 +111,25 @@ public:
         SDL_RenderFillRect(renderer, &rect);
     }
 
+    // Update paddle position
+    void update (float dt)
+    {
+        position += velocity * dt;
+
+        if (position.y < 0)
+        {
+            // Keeps the paddle at the top of the screen
+            position.y = 0;
+        }
+        else if (position.y > (HEIGHT - Paddle_Height))
+        {
+            // Keeps the paddle at the bottom of the screen
+            position.y = HEIGHT - Paddle_Height;
+        }
+    }
+
     Vec2 position;
+    Vec2 velocity;
     SDL_Rect rect;
 };
 
@@ -120,7 +146,7 @@ public:
         SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
 
         rect.x = static_cast<int>(position.x);
-        rect.y = static_cast<int>(position.x);
+        rect.y = static_cast<int>(position.y);
         rect.w = width;
         rect.h = height;
     }
@@ -164,31 +190,38 @@ int main(int argc, char *argv[])
     // Initialize the Text
     TTF_Font *scoreFont = TTF_OpenFont("Game_Number.ttf", 40);
 
-    // Player score text
-    PlayerScores playerone(Vec2(WIDTH / 4, 20), renderer, scoreFont);
-
-    PlayerScores playertwo (Vec2(WIDTH - WIDTH / 4, 20), renderer, scoreFont);
-
     // Create Ball
     Ball ball(
         Vec2(WIDTH / 2.0f - Ball_Width / 2.0f, HEIGHT / 2.0f - Ball_Height / 2.0f));
 
     // Create two Paddle
     Paddle paddle1(
-        Vec2(WIDTH / 60.0f - Paddle_Width / 2.0f, HEIGHT / 2.0f - Paddle_Height / 2.0f));
+        Vec2(WIDTH / 60.0f - Paddle_Width / 2.0f, HEIGHT / 2.0f - Paddle_Height / 2.0f),
+        Vec2(0.0f, 0.0f));
 
     Paddle paddle2(
-        Vec2(WIDTH - (WIDTH / 60.0f), HEIGHT / 2.0f - Paddle_Height / 2.0f));
+        Vec2(WIDTH - (WIDTH / 60.0f), HEIGHT / 2.0f - Paddle_Height / 2.0f),
+        Vec2(0.0f,0.0f));
+
+    // Player score text
+    PlayerScores playerone(Vec2(WIDTH / 4.0f, 20.0f), renderer, scoreFont);
+
+    PlayerScores playertwo (Vec2(WIDTH - (WIDTH / 4.0), 20.0), renderer, scoreFont);
         
     // GAME LOGIC
     bool running = true;
+
+    bool buttons[4] = {};
+
     while (running)
     {
+        auto startTime = chrono::high_resolution_clock::now();
+
+        float dt = 0.0f;
+
         // AN EVENT TO KEEP THE LOOP RUNNING
         SDL_Event event;
-
-        // LINE 32-47 CHECKS IF WINDOW IS CLOSED OR PRESSED THE ESCAPE KEY
-        if (SDL_PollEvent(&event))
+        while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
             {
@@ -200,8 +233,78 @@ int main(int argc, char *argv[])
                 {
                     running = false;
                 }
+                else if (event.key.keysym.sym == SDLK_w)
+                {
+                    buttons[Buttons::PaddleOneUP] = true;
+                }
+                else if (event.key.keysym.sym == SDLK_s)
+                {
+                    buttons[Buttons::PaddleOneDown] = true;
+                }
+                else if (event.key.keysym.sym == SDLK_UP)
+                {
+                    buttons[Buttons::PaddleTwoUp] = true;
+                }
+                else if (event.key.keysym.sym == SDLK_DOWN)
+                {
+                    buttons[Buttons::PaddleTwoDown] = true;
+                }
+            }
+            else if (event.type == SDL_KEYUP)
+            {
+                if (event.key.keysym.sym == SDLK_w)
+                {
+                    buttons[Buttons::PaddleOneUP] = false;
+                }
+                else if (event.key.keysym.sym == SDLK_s)
+                {
+                    buttons[Buttons::PaddleOneDown] = false;
+                }
+                else if (event.key.keysym.sym == SDLK_UP)
+                {
+                    buttons[Buttons::PaddleTwoUp] = false;
+                }
+                else if (event.key.keysym.sym == SDLK_DOWN)
+                {
+                    buttons[Buttons::PaddleTwoDown] = false;
+                }
             }
         }
+
+        if (buttons[Buttons::PaddleOneUP])
+        {
+            paddle1.velocity.y = -Paddle_Speed * 5;
+        }
+        else if (buttons[Buttons::PaddleOneDown])
+        {
+            paddle1.velocity.y = Paddle_Speed * 5;
+        }
+        else
+        {
+            paddle1.velocity.y = 0.0f;
+        }
+
+        if (buttons[Buttons::PaddleTwoUp])
+        {
+            paddle2.velocity.y = -Paddle_Speed * 5;
+        }
+        else if (buttons[Buttons::PaddleTwoDown])
+        {
+            paddle2.velocity.y = Paddle_Speed * 5;
+        }
+        else
+        {
+            paddle2.velocity.y = 0.0f;
+        }
+
+        // Calculate frame time
+        auto stopTime = chrono::high_resolution_clock::now();
+        dt = chrono::duration<float, chrono::milliseconds::period>(stopTime - startTime).count();
+
+        // Update paddle position
+        paddle1.update(dt);
+        paddle2.update(dt);
+
         //SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
         SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
         SDL_RenderClear(renderer);
