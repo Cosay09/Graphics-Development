@@ -31,11 +31,12 @@ using namespace std;
 
 const int WIDTH = 1280;
 const int HEIGHT = 720;
-const int Ball_Width = 10;
-const int Ball_Height = 10;
-const int Paddle_Width = 7;
-const int Paddle_Height = 70;
+const int Ball_Width = 15;
+const int Ball_Height = 15;
+const int Paddle_Width = 10;
+const int Paddle_Height = 100;
 const float Paddle_Speed = 1.0f;
+const float Ball_Speed = 1.0f;
 
 enum Buttons
 {
@@ -44,18 +45,35 @@ enum Buttons
     PaddleTwoUp,
     PaddleTwoDown,
 };
+
+enum class CollisionType
+{
+    None,
+    Top,
+    Middle,
+    Bottom,
+    Left,
+    Right
+};
+
+struct Contact
+{
+    CollisionType type;
+    float penetration;
+};
+
 class Vec2
 {
 public:
-    Vec2(): x(0.0f), y(0.0f) {} //Use constructor to initialize x and y
-    
-    Vec2(float x, float y): x(x), y(y) {}
-    
-    Vec2 operator+(Vec2 const& rhs) //rhs = Right Hand Side
+    Vec2() : x(0.0f), y(0.0f) {} // Use constructor to initialize x and y
+
+    Vec2(float x, float y) : x(x), y(y) {}
+
+    Vec2 operator+(Vec2 const &rhs) // rhs = Right Hand Side
     {
         return Vec2(x + rhs.x, y + rhs.y);
     }
-    Vec2& operator+=(Vec2 const& rhs)
+    Vec2 &operator+=(Vec2 const &rhs)
     {
         x += rhs.x;
         y += rhs.y;
@@ -72,25 +90,65 @@ public:
 class Ball
 {
 public:
-	Ball(Vec2 position)
-		: position(position)
-	{
-		rect.x = static_cast<int>(position.x);
-		rect.y = static_cast<int>(position.y);
-		rect.w = Ball_Width;
-		rect.h = Ball_Height;
-	}
+    Ball(Vec2 position, Vec2 velocity)
+        : position(position), velocity(velocity)
+    {
+        rect.x = static_cast<int>(position.x);
+        rect.y = static_cast<int>(position.y);
+        rect.w = Ball_Width;
+        rect.h = Ball_Height;
+    }
 
-	void Draw(SDL_Renderer* renderer)
-	{
-		rect.x = static_cast<int>(position.x);
-		rect.y = static_cast<int>(position.y);
+    void Draw(SDL_Renderer *renderer)
+    {
+        rect.x = static_cast<int>(position.x);
+        rect.y = static_cast<int>(position.y);
 
-		SDL_RenderFillRect(renderer, &rect);
-	}
+        SDL_RenderFillRect(renderer, &rect);
+    }
 
-	Vec2 position;
-	SDL_Rect rect{};
+    void update(float dt)
+    {
+        position += velocity * dt;
+    }
+
+    void CollisionWithPaddle(Contact const &contact)
+    {
+        position.x += contact.penetration;
+        velocity.x = -velocity.x;
+
+        if (contact.type == CollisionType::Top)
+        {
+            velocity.y = -0.75f * Ball_Speed;
+        }
+        else if (contact.type == CollisionType::Bottom)
+        {
+            velocity.y = 0.75f * Ball_Speed;
+        }
+    }
+
+    void CollideWithWall(Contact const &contact)
+    {
+        if ((contact.type == CollisionType::Top) || (contact.type == CollisionType::Bottom))
+        {
+            position.y += contact.penetration;
+            velocity.y = -velocity.y;
+        }
+        else if (contact.type == CollisionType::Left || contact.type == CollisionType::Right)
+        {
+            // Reset ball position to the center
+            position.x = WIDTH / 2.0f;
+            position.y = HEIGHT / 2.0f;
+
+            // Randomize Y-axis velocity after reset
+            velocity.x = (contact.type == CollisionType::Left) ? Ball_Speed : -Ball_Speed;
+            velocity.y = ((rand() % 2) == 0 ? 1 : -1) * (0.5f + static_cast<float>(rand()) / RAND_MAX * 0.5f) * Ball_Speed;
+        }
+    }
+
+    Vec2 position;
+    Vec2 velocity;
+    SDL_Rect rect{};
 };
 
 class Paddle
@@ -104,7 +162,7 @@ public:
         rect.h = Paddle_Height;
     }
 
-    void Draw (SDL_Renderer *renderer)
+    void Draw(SDL_Renderer *renderer)
     {
         rect.y = static_cast<int>(position.y);
 
@@ -112,7 +170,7 @@ public:
     }
 
     // Update paddle position
-    void update (float dt)
+    void update(float dt)
     {
         position += velocity * dt;
 
@@ -169,6 +227,100 @@ public:
     SDL_Surface *surface{};
 };
 
+// Ball and Paddle Collision
+Contact chekcPaddleCollision(Ball const &ball, Paddle const &paddle)
+{
+    float ballLeft = ball.position.x;
+    float ballRight = ball.position.x + Ball_Width;
+    float ballTop = ball.position.y;
+    float ballBottom = ball.position.y + Ball_Height;
+
+    float paddleLeft = paddle.position.x;
+    float paddleRight = paddle.position.x + Paddle_Width;
+    float paddleTop = paddle.position.y;
+    float paddleBottom = paddle.position.y + Paddle_Height;
+
+    Contact contact{};
+
+    if (ballLeft >= paddleRight)
+    {
+        return contact;
+    }
+    if (ballRight <= paddleLeft)
+    {
+        return contact;
+    }
+
+    if (ballTop >= paddleBottom)
+    {
+        return contact;
+    }
+    if (ballBottom <= paddleTop)
+    {
+        return contact;
+    }
+
+    float paddleRangeUpper = paddleBottom - (2.0f * Paddle_Height / 3.0f);
+    float paddleRangerMiddle = paddleBottom - (Paddle_Height / 3.0f);
+
+    if (ball.velocity.x < 0)
+    {
+        // Left paddle
+        contact.penetration = paddleRight - ballLeft;
+    }
+    else if (ball.velocity.x > 0)
+    {
+        // Right paddle
+        contact.penetration = paddleLeft - ballRight;
+    }
+
+    if ((ballBottom > paddleTop) && (ballBottom < paddleRangeUpper))
+    {
+        contact.type = CollisionType::Top;
+    }
+    else if ((ballBottom > paddleRangeUpper) && (ballBottom < paddleRangerMiddle))
+    {
+        contact.type = CollisionType::Middle;
+    }
+    else
+    {
+        contact.type = CollisionType::Bottom;
+    }
+
+    return contact;
+}
+
+Contact CheckWallCollisions(Ball const &ball)
+{
+    float ballLeft = ball.position.x;
+    float ballRight = ball.position.x + Ball_Width;
+    float ballTop = ball.position.y;
+    float ballBottom = ball.position.y + Ball_Height;
+
+    Contact contact{};
+
+    if (ballLeft < 0.0f)
+    {
+        contact.type = CollisionType::Left;
+    }
+    else if (ballRight > WIDTH)
+    {
+        contact.type = CollisionType::Right;
+    }
+    else if (ballTop < 0.0f)
+    {
+        contact.type = CollisionType::Top;
+        contact.penetration = -ballTop;
+    }
+    else if (ballBottom > HEIGHT)
+    {
+        contact.type = CollisionType::Bottom;
+        contact.penetration = HEIGHT - ballBottom;
+    }
+
+    return contact;
+}
+
 int main(int argc, char *argv[])
 {
     SDL_Init(SDL_INIT_EVERYTHING);
@@ -185,39 +337,39 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 
     // Initialize the Text
     TTF_Font *scoreFont = TTF_OpenFont("Game_Number.ttf", 40);
 
     // Create Ball
     Ball ball(
-        Vec2(WIDTH / 2.0f - Ball_Width / 2.0f, HEIGHT / 2.0f - Ball_Height / 2.0f));
+        Vec2(WIDTH / 2.0f - Ball_Width / 2.0f, HEIGHT / 2.0f - Ball_Height / 2.0f),
+        Vec2(Ball_Speed, 0.0f));
 
     // Create two Paddle
     Paddle paddle1(
-        Vec2(WIDTH / 60.0f - Paddle_Width / 2.0f, HEIGHT / 2.0f - Paddle_Height / 2.0f),
+        Vec2(50.0f, HEIGHT / 2.0f),
         Vec2(0.0f, 0.0f));
 
     Paddle paddle2(
-        Vec2(WIDTH - (WIDTH / 60.0f), HEIGHT / 2.0f - Paddle_Height / 2.0f),
-        Vec2(0.0f,0.0f));
+        Vec2(WIDTH - 50.0f, HEIGHT / 2.0f),
+        Vec2(0.0f, 0.0f));
 
     // Player score text
     PlayerScores playerone(Vec2(WIDTH / 4.0f, 20.0f), renderer, scoreFont);
 
-    PlayerScores playertwo (Vec2(WIDTH - (WIDTH / 4.0), 20.0), renderer, scoreFont);
-        
+    PlayerScores playertwo(Vec2(WIDTH - (WIDTH / 4.0), 20.0), renderer, scoreFont);
+
     // GAME LOGIC
     bool running = true;
-
     bool buttons[4] = {};
+
+    float dt = 0.0f;
 
     while (running)
     {
         auto startTime = chrono::high_resolution_clock::now();
-
-        float dt = 0.0f;
 
         // AN EVENT TO KEEP THE LOOP RUNNING
         SDL_Event event;
@@ -273,11 +425,11 @@ int main(int argc, char *argv[])
 
         if (buttons[Buttons::PaddleOneUP])
         {
-            paddle1.velocity.y = -Paddle_Speed * 5;
+            paddle1.velocity.y = -Paddle_Speed;
         }
         else if (buttons[Buttons::PaddleOneDown])
         {
-            paddle1.velocity.y = Paddle_Speed * 5;
+            paddle1.velocity.y = Paddle_Speed;
         }
         else
         {
@@ -286,33 +438,49 @@ int main(int argc, char *argv[])
 
         if (buttons[Buttons::PaddleTwoUp])
         {
-            paddle2.velocity.y = -Paddle_Speed * 5;
+            paddle2.velocity.y = -Paddle_Speed;
         }
         else if (buttons[Buttons::PaddleTwoDown])
         {
-            paddle2.velocity.y = Paddle_Speed * 5;
+            paddle2.velocity.y = Paddle_Speed;
         }
         else
         {
             paddle2.velocity.y = 0.0f;
         }
 
-        // Calculate frame time
-        auto stopTime = chrono::high_resolution_clock::now();
-        dt = chrono::duration<float, chrono::milliseconds::period>(stopTime - startTime).count();
-
         // Update paddle position
         paddle1.update(dt);
         paddle2.update(dt);
 
-        //SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
+        // Update Ball position
+        ball.update(dt);
+
+        // Check collisions
+        if (Contact contact = chekcPaddleCollision(ball, paddle1);
+            contact.type != CollisionType::None)
+        {
+            ball.CollisionWithPaddle(contact);
+        }
+        else if (contact = chekcPaddleCollision(ball, paddle2);
+                 contact.type != CollisionType::None)
+        {
+            ball.CollisionWithPaddle(contact);
+        }
+        else if (contact = CheckWallCollisions(ball);
+                 contact.type != CollisionType::None)
+        {
+            ball.CollideWithWall(contact);
+        }
+
+        // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
         SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
         SDL_RenderClear(renderer);
 
-        //Set the color to yellow;
+        // Set the color to yellow;
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0, 0xFF);
 
-        //Draw border
+        // Draw border
         for (int i = 0; i < HEIGHT; i++)
         {
             if (i % 5 != 0)
@@ -328,12 +496,16 @@ int main(int argc, char *argv[])
         paddle1.Draw(renderer);
         paddle2.Draw(renderer);
 
-        //Draw Scores
+        // Draw Scores
         playerone.Draw();
         playertwo.Draw();
 
-        //Present the backbuffer
+        // Present the backbuffer
         SDL_RenderPresent(renderer);
+
+        // Calculate frame time
+        auto stopTime = chrono::high_resolution_clock::now();
+        dt = chrono::duration<float, chrono::milliseconds::period>(stopTime - startTime).count();
     }
 
     // CLEANUPS ALWAYS!!!!!!!!!!
