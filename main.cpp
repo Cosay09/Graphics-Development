@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 
     // Initialize the Text
-    TTF_Font *scoreFont = TTF_OpenFont("Game_Number.ttf", 40);
+    TTF_Font *scoreFont = TTF_OpenFont("Game_NumberFont.ttf", 40);
 
     // Create Ball
     Ball ball(
