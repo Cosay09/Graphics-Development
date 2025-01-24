@@ -1,10 +1,12 @@
-#include<iostream>
+#include <iostream>
 #include <SDL2/SDL.h>
 
 using namespace std;
 
 const int WINDOW_WIDTH = 720;
 const int WINDOW_HEIGHT = 480;
+
+void draw(SDL_Renderer *renderer);
 
 int main(int argc, char *argv[])
 {
@@ -14,7 +16,8 @@ int main(int argc, char *argv[])
 
     if (window == NULL)
     {
-        cout << "Window was not created." << '\n' << SDL_GetError << '\n';
+        cout << "Window was not created." << '\n'
+             << SDL_GetError << '\n';
         return 1;
     }
 
@@ -39,23 +42,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
-        // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0x0, 0x0, 0xFF);
-        SDL_RenderClear(renderer);
-
-        // Set the color to yellow;
-        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0, 0xFF);
-
-        // Draw border
-        for (int i = 0; i < WINDOW_HEIGHT; i++)
-        {
-            if (i % 5 != 0)
-            {
-                SDL_RenderDrawPoint(renderer, WINDOW_WIDTH / 2, i);
-            }
-        }
-
+        draw(renderer);
         SDL_RenderPresent(renderer);
     }
 
@@ -64,5 +51,24 @@ int main(int argc, char *argv[])
     SDL_Quit();
 
     return 0;
+}
 
+void draw(SDL_Renderer *renderer)
+{
+
+    // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
+    SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
+    SDL_RenderClear(renderer);
+
+    // Set the color to yellow;
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0, 0xFF);
+
+    // Draw border
+    for (int i = 0; i < WINDOW_HEIGHT; i++)
+    {
+        if (i % 5 != 0)
+        {
+            SDL_RenderDrawPoint(renderer, WINDOW_WIDTH / 2, i);
+        }
+    }
 }
