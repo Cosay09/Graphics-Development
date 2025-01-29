@@ -6,7 +6,6 @@ using namespace std;
 const int WINDOW_WIDTH = 720;
 const int WINDOW_HEIGHT = 480;
 
-void draw(SDL_Renderer *renderer);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +41,24 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        draw(renderer);
+
+        // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
+        SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
+        SDL_RenderClear(renderer);
+
+        // Set the color to yellow;
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0, 0xFF);
+
+        // Draw border
+        for (int i = 0; i < WINDOW_HEIGHT; i++)
+        {
+            if (i % 5 != 0)
+            {
+                SDL_RenderDrawPoint(renderer, WINDOW_WIDTH / 2, i);
+            }
+        }
+
+        SDL_LoadBMP( "Screenshot (5).png" );
         SDL_RenderPresent(renderer);
     }
 
@@ -51,24 +67,4 @@ int main(int argc, char *argv[])
     SDL_Quit();
 
     return 0;
-}
-
-void draw(SDL_Renderer *renderer)
-{
-
-    // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
-    SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
-    SDL_RenderClear(renderer);
-
-    // Set the color to yellow;
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0, 0xFF);
-
-    // Draw border
-    for (int i = 0; i < WINDOW_HEIGHT; i++)
-    {
-        if (i % 5 != 0)
-        {
-            SDL_RenderDrawPoint(renderer, WINDOW_WIDTH / 2, i);
-        }
-    }
 }
