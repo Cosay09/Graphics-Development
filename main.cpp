@@ -503,8 +503,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        // SETS THE SCREEN TO BLACK AND RE_DRAWS EVERYTIME
-        SDL_SetRenderDrawColor(renderer, 0x0, 0x0, 0x0, 0xFF);
+        SDL_SetRenderDrawColor(renderer, 0xFF, 0x80, 0xFF, 0xFF);
         SDL_RenderClear(renderer);
 
         // Set the color to yellow;

@@ -3,14 +3,14 @@
 #include <iostream>
 
 const int W_WIDTH = 1080;
-const int W_HEIGHT = 720;
+const int W_HEIGHT = 480;
 
 SDL_Window *window = NULL;
 SDL_Surface *screensurface = NULL;
 SDL_Surface *drawSurface = NULL;
+SDL_Rect rect;
+//SDL_Renderer *renderer = NULL;
 
-int xPos = 0; // Starting position for the image
-int delay = 50;
 bool init()
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
@@ -30,6 +30,13 @@ bool init()
         screensurface = SDL_GetWindowSurface(window);
     }
 
+    /*renderer = SDL_CreateRenderer(window, -1, 0);
+    if (renderer == NULL)
+    {
+        printf("Couldn't initialize renderer! %s\n", SDL_GetError());
+        return false;
+    }*/
+
     // Initialize SDL_image
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))
     {
@@ -44,7 +51,7 @@ bool loadmedia()
 {
     bool success = true;
 
-    drawSurface = IMG_Load("background.png");
+    drawSurface = IMG_Load("background-1.png");
     if (drawSurface == NULL)
     {
         printf("Couldn't load image! %s\n", SDL_GetError());
@@ -53,34 +60,6 @@ bool loadmedia()
 
     return success;
 }
-
-void tileImage(int xOffset)
-{
-    int imgWidth = drawSurface->w;
-    int imgHeight = drawSurface->h;
-
-    // Loop over the window dimensions and blit the image repeatedly
-    for (int y = 0; y < W_HEIGHT; y += imgHeight)
-    {
-        // First blit the main image
-        for (int x = xOffset; x < W_WIDTH + imgWidth; x += imgWidth)
-        {
-            SDL_Rect destRect = {x, y, imgWidth, imgHeight};
-            SDL_BlitSurface(drawSurface, NULL, screensurface, &destRect);
-        }
-
-        // Blit an additional copy of the image to create a seamless loop
-        for (int x = xOffset - imgWidth; x < W_WIDTH; x += imgWidth)
-        {
-            SDL_Rect destRect = {x, y, imgWidth, imgHeight};
-            SDL_BlitSurface(drawSurface, NULL, screensurface, &destRect);
-        }
-    }
-
-    // Update the window surface to display the changes
-    SDL_UpdateWindowSurface(window);
-}
-
 
 void close()
 {
@@ -103,6 +82,11 @@ int main(int argc, char *argv[])
         }
         else
         {
+            rect.x = 0;
+            rect.y = 0;
+            rect.w = drawSurface->w;
+            rect.h = drawSurface->h;
+
             bool running = true;
             SDL_Event event;
 
@@ -116,27 +100,11 @@ int main(int argc, char *argv[])
                         running = false;
                     }
                 }
-
-                // Clear the screen by filling it with black (or any color you want)
                 SDL_FillRect(screensurface, NULL, SDL_MapRGB(screensurface->format, 0, 0, 0));
 
-                // Move the image
-                tileImage(xPos);
+                SDL_BlitSurface(drawSurface, NULL, screensurface, &rect);
 
-                // Update the x position of the image to move it to the right
-                xPos -= 5; // Adjust speed by changing the increment
-
-                // If the image has moved off the screen, reset its position
-                if (xPos >= W_WIDTH)
-                {
-                    xPos = 0; // Reset to the left side
-                }
-
-                if (delay > 0)
-                {
-                    delay--;
-                }
-                SDL_Delay(delay);
+                SDL_UpdateWindowSurface(window);
             }
         }
     }
