@@ -36,7 +36,7 @@ const int Ball_Height = 15;
 const int Paddle_Width = 10;
 const int Paddle_Height = 80;
 const float Paddle_Speed = 1.0f;
-const float Ball_Speed = 1.0f;
+const float Ball_Speed = 0.8f;
 
 enum Buttons
 {
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
 
     // Initialize the Text
-    TTF_Font *scoreFont = TTF_OpenFont("D:/Graphics Development/Game_NumberFont.ttf", 40);
+    TTF_Font *scoreFont = TTF_OpenFont("S:/Graphics-Development/Game_NumberFont.ttf", 40);
 
     // Create Ball
     Ball ball(
